@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List
@@ -30,15 +29,22 @@ class UserRequest(BaseModel):
 
 @app.post("/train")
 def train_model(products: List[Product]):
-    df = pd.DataFrame([p.dict() for p in products])
-    recommender.fit(df)
-    return {"message": f"Trained on {len(products)} products."}
+    try:
+        df = pd.DataFrame([p.dict() for p in products])
+        recommender.fit(df)
+        recommender.user_profiles = {}  # ← تفريغ ملفات المستخدمين القديمة
+        return {"message": f"Trained on {len(products)} products."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/update-user-logs")
 def update_user_logs(logs: List[UserActivity]):
-    df = pd.DataFrame([l.dict() for l in logs])
-    recommender.update_user_profiles(df)
-    return {"message": f"Updated profiles for users."}
+    try:
+        df = pd.DataFrame([l.dict() for l in logs])
+        recommender.update_user_profiles(df)
+        return {"message": "Updated profiles for users."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/recommend-product")
 def recommend_for_product(req: ProductRequest):
